@@ -1,42 +1,69 @@
 package com.nightlyecommercebackend.config;
 
-import com.nightlyecommercebackend.service.MyUserDetailsService;
+import com.nightlyecommercebackend.security.JwtAuthenticationFilter;
+import com.nightlyecommercebackend.service.impl.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableWebSecurity
+@EnableMethodSecurity // Enables @PreAuthorize annotations
 public class SecurityConfig {
 
+    private final CustomUserDetailsService customUserDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.customUserDetailsService = customUserDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    // Password encoder bean
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    // Authentication Manager bean
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    // DaoAuthenticationProvider bean to connect UserDetailsService & Encoder
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(customUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    // Security filter chain bean
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
-            .csrf(customizer->customizer.disable())
-            .authorizeHttpRequests(request-> request.anyRequest().authenticated()) // every api is authenticated
-    //                .formLogin(Customizer.withDefaults()) // enables formlogin for entering userdetails to login and access apis
-            .httpBasic(Customizer.withDefaults()) // enables basic authentication
-            .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // this will make csrf to create for every time we reload.
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless REST API
+                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers("/api/public").permitAll() // Allow unauth signup/login
+                        .requestMatchers("/api/auth/**").permitAll() // Allow unauth signup/login
+                        .anyRequest().authenticated() // Others need auth
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // No session, JWT only
+                )
+                .authenticationProvider(authenticationProvider()) // Use your provider
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter
 
         return http.build();
     }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider(MyUserDetailsService myUserDetailsService) {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-//        authProvider.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
-        authProvider.setPasswordEncoder(new BCryptPasswordEncoder(12));
-        authProvider.setUserDetailsService(myUserDetailsService);
-        return authProvider;
-    }
-
 }
