@@ -11,10 +11,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
 @Table(name = "users")
 public class User {
     @Id
@@ -31,6 +27,19 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public User(Long id, String username, String email, String password, String firstName, String lastName, Boolean enabled, LocalDateTime createdAt, LocalDateTime updatedAt, Set<Role> roles) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.enabled = enabled;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.roles = roles;
+    }
+
     // Many-to-Many relationship
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -39,6 +48,10 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id") // foreign key from Role
     )
     private Set<Role> roles = new HashSet<>();
+
+    public User() {
+
+    }
 
 
 //   | ------------------------------------ | --------------------------------------------------------------------------------------- |
@@ -78,8 +91,9 @@ public class User {
         return password;
     }
 
-    public void setPassword(String password) {
+    public String setPassword(String password) {
         this.password = password;
+        return password;
     }
 
     public String getFirstName() {

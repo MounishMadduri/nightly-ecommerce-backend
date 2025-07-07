@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     // Password encoder bean
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
+        System.out.println("✅ BCryptPasswordEncoder bean created");
         return new BCryptPasswordEncoder();
     }
 
@@ -39,12 +41,15 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+
     // DaoAuthenticationProvider bean to connect UserDetailsService & Encoder
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
+        System.out.println("✅ Building DaoAuthenticationProvider with: " + customUserDetailsService);
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
+        System.out.println("✅ Custom DaoAuthenticationProvider configured with BCrypt");
         return provider;
     }
 
@@ -61,7 +66,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // No session, JWT only
                 )
-                .authenticationProvider(authenticationProvider()) // Use your provider
+//                .authenticationProvider(authenticationProvider()) // Use your provider
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter
 
         return http.build();

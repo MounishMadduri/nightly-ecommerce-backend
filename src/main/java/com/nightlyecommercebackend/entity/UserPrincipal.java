@@ -9,11 +9,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
-@Getter
-@Setter
+
 public class UserPrincipal implements UserDetails {
 
     User user;
+    public UserPrincipal() {
+        // Default constructor
+    }
     public UserPrincipal(User user) {
         this.user = user;
     }
